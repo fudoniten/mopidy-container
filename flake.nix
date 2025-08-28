@@ -148,7 +148,7 @@
                 "/var/lib/mopidy" = { };
                 "/var/lib/ytmusic" = { };
               };
-              Entrypoint = [ "exec /bin/start-mopidy" ];
+              Entrypoint = [ "/bin/start-mopidy" ];
             };
           };
 

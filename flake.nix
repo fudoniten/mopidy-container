@@ -55,43 +55,74 @@
               ${pkgs.gettext}/bin/envsubst < /etc/mopidy/mopidy.conf.tmpl > /etc/mopidy/mopidy.conf
               mopidy --config /etc/mopidy/mopidy.conf
             '';
+            pyPkgs = with pkgs.python3Packages; [ pygobject3 pycairo ];
+            pyRoots = with pkgs;
+              [
+                mopidy
+                mopidy-mpd
+                mopidy-spotify
+                mopidy-iris
+                mopidy-somafm
+                mopidy-podcast
+                mopidy-ytmusic
+                mopidy-muse
+                mopidy-mopify
+              ] ++ pyPkgs;
+            pyPath = makeSearchPathOutput "site-packages"
+              "lib/${pkgs.python3.libPrefix}/site-packages" pyRoots;
           in pkgs.dockerTools.buildLayeredImage {
             name = "registry.kube.sea.fudo.link/mopidy-server";
             tag = "0.0.1";
-            contents = with pkgs; [
-              etcLayer
-              entrypoint
+            contents = with pkgs;
+              [
+                etcLayer
+                entrypoint
 
-              coreutils
-              bashInteractive
+                coreutils
+                bashInteractive
+                cacert
 
-              mopidy
-              mopidy-mpd
-              mopidy-spotify
-              mopidy-iris
-              mopidy-somafm
-              mopidy-podcast
-              mopidy-ytmusic
-              mopidy-muse
-              mopidy-mopify
+                mopidy
+                mopidy-mpd
+                mopidy-spotify
+                mopidy-iris
+                mopidy-somafm
+                mopidy-podcast
+                mopidy-ytmusic
+                mopidy-muse
+                mopidy-mopify
 
-              gst_all_1.gstreamer
-              gst_all_1.gst-plugins-base
-              gst_all_1.gst-plugins-good
-              gst_all_1.gst-plugins-bad
-              gst_all_1.gst-plugins-ugly
-              gst_all_1.gst-libav
-            ];
+                gst_all_1.gstreamer
+                gst_all_1.gst-plugins-base
+                gst_all_1.gst-plugins-good
+                gst_all_1.gst-plugins-bad
+                gst_all_1.gst-plugins-ugly
+                gst_all_1.gst-libav
+
+                fontconfig
+                dejavu_fonts
+
+                gobject-introspection
+                glib-networking
+              ] ++ pyPkgs;
 
             enableFakechroot = true;
             fakeRootCommands = ''
               ${pkgs.dockerTools.shadowSetup}
               groupadd -g 1000 mopidy
               useradd -u 1000 -g mopidy -d /var/lib/mopidy -M -r mopidy
+
               mkdir -p /var/lib/mopidy/.cache /var/lib/mopidy/.config /var/lib/mopidy/.local/share
+              mkdir -p /var/lib/ytmusic
+              mkdir -p /var/cache/fontconfig
+
               chown -R mopidy:mopidy /var/lib/mopidy
+              chown -R mopidy:mopidy /var/cache/fontconfig
+
               mkdir -p /etc/mopidy
               chown mopidy:mopidy /etc/mopidy
+
+              ln -s ${pkgs.fontconfig.out}/etc/fonts /etc/fonts || true
             '';
 
             config = {
@@ -105,18 +136,19 @@
                 "XDG_CACHE_HOME=/var/lib/mopidy/.cache"
                 "XDG_CONFIG_HOME=/var/lib/mopidy/.config"
                 "XDG_DATA_HOME=/var/lib/mopidy/.local/share"
+                "PYTHONPATH=${pyPath}"
                 "PYTHONUNBUFFERED=1"
                 "SPOTIFY_CLIENT_ID="
                 "SPOTIFY_CLIENT_SECRET="
-                "PODCASTS_ENABLED=false"
-                "YOUTUBE_MUSIC_ENABLED=false"
-                "SPOTIFY_ENABLED=false"
+                "FONTCONFIG_FILE=${pkgs.fontconfig.out}/etc/fonts/fonts.conf"
+                "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+                "GIO_EXTRA_MODULES=${pkgs.glib-networking}/lib/gio/modules"
               ];
               Volumes = {
                 "/var/lib/mopidy" = { };
                 "/var/lib/ytmusic" = { };
               };
-              Entrypoint = [ "/bin/start-mopidy" ];
+              Entrypoint = [ "exec /bin/start-mopidy" ];
             };
           };
 

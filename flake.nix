@@ -55,7 +55,13 @@
               ${pkgs.gettext}/bin/envsubst < /etc/mopidy/mopidy.conf.tmpl > /etc/mopidy/mopidy.conf
               mopidy --config /etc/mopidy/mopidy.conf
             '';
-            pyPkgs = with pkgs.python3Packages; [ pygobject3 pycairo ];
+            pyPkgs = with pkgs.python3Packages; [
+              configobj
+              pygobject3
+              pycairo
+              ytmusicapi
+              uritools
+            ];
             pyRoots = with pkgs;
               [
                 mopidy

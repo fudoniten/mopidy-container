@@ -56,9 +56,11 @@
               mopidy --config /etc/mopidy/mopidy.conf
             '';
             pyPkgs = with pkgs.python3Packages; [
+              cachetools
               configobj
               pygobject3
               pycairo
+              pytube
               ytmusicapi
               uritools
             ];

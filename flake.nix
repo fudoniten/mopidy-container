@@ -24,7 +24,6 @@
             };
             iris.enabled = true;
             muse.enabled = true;
-            mopify.enabled = true;
             somafm.enabled = true;
             spotify = {
               enabled = "\${SPOTIFY_ENABLED}";
@@ -40,6 +39,16 @@
               enabled = "\${PODCASTS_ENABLED}";
               browse_root = "Podcasts.opml";
             };
+            audio.output = pkgs.lib.concatStringsSep " " [
+              "lamemp3enc"
+              "!"
+              "shout2send"
+              "async=false"
+              "mount=mopidy"
+              "port=8000"
+              "ip=icecast"
+              "password=\${ICECAST_SOURCE_PASSWORD}"
+            ];
           });
 
       in {
@@ -74,7 +83,6 @@
                 mopidy-podcast
                 mopidy-ytmusic
                 mopidy-muse
-                mopidy-mopify
               ] ++ pyPkgs;
             pyPath = makeSearchPathOutput "site-packages"
               "lib/${pkgs.python3.libPrefix}/site-packages" pyRoots;
@@ -98,7 +106,6 @@
                 mopidy-podcast
                 mopidy-ytmusic
                 mopidy-muse
-                mopidy-mopify
 
                 gst_all_1.gstreamer
                 gst_all_1.gst-plugins-base
@@ -148,6 +155,7 @@
                 "PYTHONUNBUFFERED=1"
                 "SPOTIFY_CLIENT_ID="
                 "SPOTIFY_CLIENT_SECRET="
+                "ICECAST_PASSWD="
                 "FONTCONFIG_FILE=${pkgs.fontconfig.out}/etc/fonts/fonts.conf"
                 "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
                 "GIO_EXTRA_MODULES=${pkgs.glib-networking}/lib/gio/modules"

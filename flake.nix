@@ -40,13 +40,18 @@
               browse_root = "Podcasts.opml";
             };
             audio.output = pkgs.lib.concatStringsSep " " [
+              "audioconvert"
+              "!"
+              "audioresample"
+              "!"
               "lamemp3enc"
               "!"
               "shout2send"
               "async=false"
-              "mount=mopidy"
+              "mount=/mopidy"
               "port=8000"
               "ip=icecast"
+              "username=source"
               "password=\${ICECAST_SOURCE_PASSWORD}"
             ];
           });

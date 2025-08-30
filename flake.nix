@@ -54,7 +54,7 @@
               "async=false"
               "mount=/mopidy"
               "port=8000"
-              "ip=icecast"
+              "ip=icecast.mopidy.svc.cluster.local"
               "username=source"
               "password=\${ICECAST_SOURCE_PASSWORD}"
             ];
@@ -99,10 +99,8 @@
               gst-plugins-ugly
               gst-libav
             ];
-            giPath = pkgs.lib.makeSearchPath "lib/gstreamer-1.0" [
-              pkgs.glib
-              pkgs.gst_all_1.gstreamer
-            ] ++ gstPlugins;
+            giPath = makeSearchPathOutput "out" "lib/girepository-1.0"
+              ([ pkgs.glib pkgs.gst_all_1.gstreamer ] ++ gstPlugins);
 
             gstPluginPath = concatStringsSep ":"
               (map (plugin: "${plugin}/lib/gstreamer-1.0") gstPlugins);
@@ -117,7 +115,7 @@
                 XDG_CACHE_HOME = "/var/lib/mopidy/.cache";
                 XDG_CONFIG_HOME = "/var/lib/mopidy/.config";
                 XDG_DATA_HOME = "/var/lib/mopidy/.local/share";
-                GI_TYPELIB_PATH = giPath;
+                GI_TYPELIB_PATH = "${giPath}";
                 SSL_CERT_FILE = "/etc/ssl/certs/ca-bundle.crt";
               };
               setEnvVars = concatStringsSep "\n"
@@ -139,7 +137,7 @@
 
                 coreutils
                 bashInteractive
-                ca-certificates
+                cacert
 
                 mopidy
                 mopidy-mpd
@@ -195,7 +193,7 @@
                 "PYTHONUNBUFFERED=1"
                 "SPOTIFY_CLIENT_ID="
                 "SPOTIFY_CLIENT_SECRET="
-                "ICECAST_PASSWD="
+                "ICECAST_SOURCE_PASSWORD="
                 "FONTCONFIG_FILE=${pkgs.fontconfig.out}/etc/fonts/fonts.conf"
                 "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
                 "GIO_EXTRA_MODULES=${pkgs.glib-networking}/lib/gio/modules"

@@ -37,7 +37,7 @@
             };
             podcast = {
               enabled = "\${PODCASTS_ENABLED}";
-              browse_root = "Podcasts.opml";
+              browse_root = "/etc/mopidy/podcast/Podcasts.opml";
             };
             musicbox_webclient = {
               enabled = true;
@@ -67,11 +67,6 @@
             etcLayer = pkgs.runCommand "etc-mopidy" { } ''
               mkdir -p $out/etc/mopidy
               cp ${defaultConfig} $out/etc/mopidy/mopidy.conf.tmpl
-            '';
-            entrypoint = pkgs.writeShellScriptBin "start-mopidy" ''
-              set -euo pipefail
-              ${pkgs.gettext}/bin/envsubst < /etc/mopidy/mopidy.conf.tmpl > /etc/mopidy/mopidy.conf
-              mopidy --config /etc/mopidy/mopidy.conf
             '';
             pyPkgs = with pkgs.python3Packages; [
               cachetools
@@ -104,6 +99,36 @@
               gst-plugins-ugly
               gst-libav
             ];
+            giPath = pkgs.lib.makeSearchPath "lib/gstreamer-1.0" [
+              pkgs.glib
+              pkgs.gst_all_1.gstreamer
+            ] ++ gstPlugins;
+
+            gstPluginPath = concatStringsSep ":"
+              (map (plugin: "${plugin}/lib/gstreamer-1.0") gstPlugins);
+            entrypoint = let
+              entrypointEnvVars = rec {
+                GST_PLUGIN_SYSTEM_PATH_1_0 = gstPluginPath;
+                GST_PLUGIN_SCANNER_1_0 =
+                  "${pkgs.gst_all_1.gstreamer}/libexec/gstreamer-1.0/gst-plugin-scanner";
+                GST_PLUGIN_SCANNER = GST_PLUGIN_SCANNER_1_0;
+                GST_PLUGIN_SYSTEM_PATH = GST_PLUGIN_SYSTEM_PATH_1_0;
+                GIO_EXTRA_MODULES = "${pkgs.glib-networking}/lib/gio/modules";
+                XDG_CACHE_HOME = "/var/lib/mopidy/.cache";
+                XDG_CONFIG_HOME = "/var/lib/mopidy/.config";
+                XDG_DATA_HOME = "/var/lib/mopidy/.local/share";
+                GI_PATH = giPath;
+                SSL_CERT_FILE = "/etc/ssl/certs/ca-bundle.crt";
+              };
+              setEnvVars = concatStringsSep "\n"
+                (mapAttrsToList (var: val: "export ${var}=${val}")
+                  entrypointEnvVars);
+            in pkgs.writeShellScriptBin "start-mopidy" ''
+              set -euo pipefail
+              ${setEnvVars}
+              ${pkgs.gettext}/bin/envsubst < /etc/mopidy/mopidy.conf.tmpl > /etc/mopidy/mopidy.conf
+              mopidy --config /etc/mopidy/mopidy.conf
+            '';
           in pkgs.dockerTools.buildLayeredImage {
             name = "registry.kube.sea.fudo.link/mopidy-server";
             tag = "0.0.1";
@@ -114,7 +139,7 @@
 
                 coreutils
                 bashInteractive
-                cacert
+                ca-certificates
 
                 mopidy
                 mopidy-mpd
@@ -132,8 +157,11 @@
                 fontconfig
                 dejavu_fonts
 
+                glib
                 gobject-introspection
                 glib-networking
+
+                python3Packages.pygobject3
               ] ++ pyPkgs ++ gstPlugins;
 
             enableFakechroot = true;
@@ -162,13 +190,7 @@
                 "6680/tcp" = { };
                 "6600/tcp" = { };
               };
-              Env = let
-                gstPluginPath = concatStringsSep ":"
-                  (map (plugin: "${plugin}/lib/gstreamer-1.0") gstPlugins);
-              in [
-                "XDG_CACHE_HOME=/var/lib/mopidy/.cache"
-                "XDG_CONFIG_HOME=/var/lib/mopidy/.config"
-                "XDG_DATA_HOME=/var/lib/mopidy/.local/share"
+              Env = [
                 "PYTHONPATH=${pyPath}"
                 "PYTHONUNBUFFERED=1"
                 "SPOTIFY_CLIENT_ID="
@@ -178,6 +200,7 @@
                 "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
                 "GIO_EXTRA_MODULES=${pkgs.glib-networking}/lib/gio/modules"
                 "GST_PLUGIN_SYSTEM_PATH_1_0=${gstPluginPath}"
+                "GI_TYPELIB_PATH=${giPath}"
               ];
               Volumes = {
                 "/var/lib/mopidy" = { };

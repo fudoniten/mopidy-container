@@ -29,6 +29,8 @@
               enabled = "\${SPOTIFY_ENABLED}";
               client_id = "\${SPOTIFY_CLIENT_ID}";
               client_secret = "\${SPOTIFY_CLIENT_SECRET}";
+              country = "\${SPOTIFY_COUNTRY}";
+              allow_explicit = true;
               bitrate = 320;
             };
             ytmusic = {
@@ -43,6 +45,7 @@
               enabled = true;
               on_track_click = "PLAY_NOW";
             };
+            logging = { verbosity = "2"; };
             audio.output = pkgs.lib.concatStringsSep " " [
               "audioconvert"
               "!"
@@ -125,7 +128,7 @@
               set -euo pipefail
               ${setEnvVars}
               ${pkgs.gettext}/bin/envsubst < /etc/mopidy/mopidy.conf.tmpl > /etc/mopidy/mopidy.conf
-              mopidy --config /etc/mopidy/mopidy.conf
+              mopidy --config /etc/mopidy/mopidy.conf -vv
             '';
           in pkgs.dockerTools.buildLayeredImage {
             name = "registry.kube.sea.fudo.link/mopidy-server";

@@ -39,6 +39,10 @@
               enabled = "\${PODCASTS_ENABLED}";
               browse_root = "Podcasts.opml";
             };
+            musicbox_webclient = {
+              enabled = true;
+              on_track_click = "PLAY_NOW";
+            };
             audio.output = pkgs.lib.concatStringsSep " " [
               "audioconvert"
               "!"
@@ -84,6 +88,8 @@
                 mopidy-mpd
                 mopidy-spotify
                 mopidy-iris
+                mopidy-moped
+                mopidy-musicbox-webclient
                 mopidy-somafm
                 mopidy-podcast
                 mopidy-ytmusic
@@ -91,6 +97,13 @@
               ] ++ pyPkgs;
             pyPath = makeSearchPathOutput "site-packages"
               "lib/${pkgs.python3.libPrefix}/site-packages" pyRoots;
+            gstPlugins = with pkgs.gst_all_1; [
+              gst-plugins-base
+              gst-plugins-good
+              gst-plugins-bad
+              gst-plugins-ugly
+              gst-libav
+            ];
           in pkgs.dockerTools.buildLayeredImage {
             name = "registry.kube.sea.fudo.link/mopidy-server";
             tag = "0.0.1";
@@ -107,24 +120,21 @@
                 mopidy-mpd
                 mopidy-spotify
                 mopidy-iris
+                mopidy-moped
+                mopidy-musicbox-webclient
                 mopidy-somafm
                 mopidy-podcast
                 mopidy-ytmusic
                 mopidy-muse
 
                 gst_all_1.gstreamer
-                gst_all_1.gst-plugins-base
-                gst_all_1.gst-plugins-good
-                gst_all_1.gst-plugins-bad
-                gst_all_1.gst-plugins-ugly
-                gst_all_1.gst-libav
 
                 fontconfig
                 dejavu_fonts
 
                 gobject-introspection
                 glib-networking
-              ] ++ pyPkgs;
+              ] ++ pyPkgs ++ gstPlugins;
 
             enableFakechroot = true;
             fakeRootCommands = ''
@@ -152,7 +162,10 @@
                 "6680/tcp" = { };
                 "6600/tcp" = { };
               };
-              Env = [
+              Env = let
+                gstPluginPath = concatStringsSep ":"
+                  (map (plugin: "${plugin}/lib/gstreamer-1.0") gstPlugins);
+              in [
                 "XDG_CACHE_HOME=/var/lib/mopidy/.cache"
                 "XDG_CONFIG_HOME=/var/lib/mopidy/.config"
                 "XDG_DATA_HOME=/var/lib/mopidy/.local/share"
@@ -164,6 +177,7 @@
                 "FONTCONFIG_FILE=${pkgs.fontconfig.out}/etc/fonts/fonts.conf"
                 "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
                 "GIO_EXTRA_MODULES=${pkgs.glib-networking}/lib/gio/modules"
+                "GST_PLUGIN_SYSTEM_PATH_1_0=${gstPluginPath}"
               ];
               Volumes = {
                 "/var/lib/mopidy" = { };

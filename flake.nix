@@ -117,7 +117,7 @@
                 XDG_CACHE_HOME = "/var/lib/mopidy/.cache";
                 XDG_CONFIG_HOME = "/var/lib/mopidy/.config";
                 XDG_DATA_HOME = "/var/lib/mopidy/.local/share";
-                GI_PATH = giPath;
+                GI_TYPELIB_PATH = giPath;
                 SSL_CERT_FILE = "/etc/ssl/certs/ca-bundle.crt";
               };
               setEnvVars = concatStringsSep "\n"

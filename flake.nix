@@ -29,8 +29,6 @@
               enabled = "\${SPOTIFY_ENABLED}";
               client_id = "\${SPOTIFY_CLIENT_ID}";
               client_secret = "\${SPOTIFY_CLIENT_SECRET}";
-              country = "\${SPOTIFY_COUNTRY}";
-              allow_explicit = true;
               bitrate = 320;
             };
             ytmusic = {
@@ -101,6 +99,7 @@
               gst-plugins-bad
               gst-plugins-ugly
               gst-libav
+              gst-plugins-rs
             ];
             giPath = makeSearchPathOutput "out" "lib/girepository-1.0"
               ([ pkgs.glib pkgs.gst_all_1.gstreamer ] ++ gstPlugins);
@@ -119,7 +118,9 @@
                 XDG_CONFIG_HOME = "/var/lib/mopidy/.config";
                 XDG_DATA_HOME = "/var/lib/mopidy/.local/share";
                 GI_TYPELIB_PATH = "${giPath}";
-                SSL_CERT_FILE = "/etc/ssl/certs/ca-bundle.crt";
+                SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
+                NIX_SSL_CERT_FILE = SSL_CERT_FILE;
+                G_TLS_CA_FILE = SSL_CERT_FILE;
               };
               setEnvVars = concatStringsSep "\n"
                 (mapAttrsToList (var: val: "export ${var}=${val}")
@@ -191,18 +192,22 @@
                 "6680/tcp" = { };
                 "6600/tcp" = { };
               };
-              Env = [
-                "PYTHONPATH=${pyPath}"
-                "PYTHONUNBUFFERED=1"
-                "SPOTIFY_CLIENT_ID="
-                "SPOTIFY_CLIENT_SECRET="
-                "ICECAST_SOURCE_PASSWORD="
-                "FONTCONFIG_FILE=${pkgs.fontconfig.out}/etc/fonts/fonts.conf"
-                "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
-                "GIO_EXTRA_MODULES=${pkgs.glib-networking}/lib/gio/modules"
-                "GST_PLUGIN_SYSTEM_PATH_1_0=${gstPluginPath}"
-                "GI_TYPELIB_PATH=${giPath}"
-              ];
+              Env =
+                mapAttrsToList (var: val: ''${var}="${toString val}"'') (rec {
+                  PYTHONPATH = pyPath;
+                  PYTHONUNBUFFERED = 1;
+                  SPOTIFY_CLIENT_ID = "";
+                  SPOTIFY_CLIENT_SECRET = "";
+                  ICECAST_SOURCE_PASSWORD = "";
+                  FONTCONFIG_FILE =
+                    "${pkgs.fontconfig.out}/etc/fonts/fonts.conf";
+                  GIO_EXTRA_MODULES = "${pkgs.glib-networking}/lib/gio/modules";
+                  GST_PLUGIN_SYSTEM_PATH_1_0 = gstPluginPath;
+                  GI_TYPELIB_PATH = gipath;
+                  SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
+                  NIX_SSL_CERT_FILE = SSL_CERT_FILE;
+                  G_TLS_CA_FILE = SSL_CERT_FILE;
+                });
               Volumes = {
                 "/var/lib/mopidy" = { };
                 "/var/lib/ytmusic" = { };

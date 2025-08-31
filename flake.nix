@@ -88,7 +88,12 @@
 
         # Python/site-packages that Mopidy (wrapper) should see at runtime.
         # Keep this minimal: only extras not already in the Mopidy/extension drv closures.
-        pyExtras = with pkgs.python3Packages; [ uritools ];
+        pyExtras = with pkgs.python3Packages; [
+          cachetools
+          pytube
+          uritools
+          ytmusicapi
+        ];
 
         # Build a proper PYTHONPATH over the out paths' site-packages
         pyPath = lib.makeSearchPathOutput "out"

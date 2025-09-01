@@ -16,7 +16,7 @@
         dockerContext = pkgs.runCommand "mopidy-docker-context" { } ''
           mkdir -p $out
           cp ${./Dockerfile} $out/Dockerfile
-          cp ${./docker-endpoint.sh} $out/docker-entrypoint.sh
+          cp ${./docker-entrypoint.sh} $out/docker-entrypoint.sh
           cp ${./mopidy.conf.tmpl} $out/mopidy.conf.tmpl
         '';
 
@@ -43,7 +43,7 @@
             ctx="${dockerContext}"
             img="${imageName}:${imageTag}"
             echo "Building ${imageName}:${imageTag} from $ctx ..."
-            buildah bud --pull --tag "$img" "$ctx"
+            buildah bud --pull --signature-policy ${policyJson} --tag "$img" "$ctx"
             echo "Built $img"
           '';
         };
@@ -57,7 +57,7 @@
             img="${imageName}:${imageTag}"
             echo "Pushing $img ..."
             # If using an insecure registry, you may need: --tls-verify=false
-            buildah push --policy ${policyJson} "$img" "docker://${imageName}:${imageTag}"
+            buildah push --signature-policy ${policyJson} "$img" "docker://${imageName}:${imageTag}"
             echo "Pushed $img"
           '';
         };

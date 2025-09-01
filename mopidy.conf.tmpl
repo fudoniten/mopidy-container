@@ -28,4 +28,4 @@ enabled = ${PODCASTS_ENABLED}
 browse_root = /etc/mopidy/podcast/Podcasts.opml
 
 [audio]
-output = audioconvert ! audioresample ! lamemp3enc ! shout2send async=false mount=${ICECAST_MOUNT} port=${ICECAST_PORT} ip=${ICECAST_HOST} username=${ICECAST_USER} password=${ICECAST_SOURCE_PASSWORD}
+output = audioconvert ! audioresample ! lamemp3enc ! shout2send async=false mount=${ICECAST_MOUNT} port=${MOPIDY_ICECAST_PORT} ip=${MOPIDY_ICECAST_HOST} username=${ICECAST_USER} password=${ICECAST_SOURCE_PASSWORD}

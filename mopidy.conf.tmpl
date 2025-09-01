@@ -1,0 +1,31 @@
+[http]
+hostname = ${HTTP_HOST}
+port = ${HTTP_PORT}
+
+[mpd]
+enabled = ${MPD_ENABLED}
+hostname = ${MPD_HOST}
+port = ${MPD_PORT}
+
+[iris]
+enabled = true
+
+[somafm]
+enabled = ${SOMAFM_ENABLED}
+
+[spotify]
+enabled = ${SPOTIFY_ENABLED}
+client_id = ${SPOTIFY_CLIENT_ID}
+client_secret = ${SPOTIFY_CLIENT_SECRET}
+bitrate = ${SPOTIFY_BITRATE}
+
+[ytmusic]
+enabled = ${YTMUSIC_ENABLED}
+auth_json = /var/lib/mopidy/ytmusic/auth.json
+
+[podcast]
+enabled = ${PODCASTS_ENABLED}
+browse_root = /etc/mopidy/podcast/Podcasts.opml
+
+[audio]
+output = audioconvert ! audioresample ! lamemp3enc ! shout2send async=false mount=${ICECAST_MOUNT} port=${ICECAST_PORT} ip=${ICECAST_HOST} username=${ICECAST_USER} password=${ICECAST_SOURCE_PASSWORD}

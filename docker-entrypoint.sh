@@ -1,5 +1,6 @@
 #!/usr/bin/env sh
 set -eu
+set -a
 
 # sensible defaults (envsubst doesn’t do ${VAR:-default}, so set them here)
 : "${HTTP_HOST:=0.0.0.0}"

@@ -1,0 +1,46 @@
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+*.md
+
+# Nix files
+flake.nix
+flake.lock
+
+# Docker and Kubernetes files (not needed in build context)
+docker-compose.yml
+.dockerignore
+kubernetes/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Editor and IDE files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Local test directories
+music/
+test/
+tests/
+
+# Build artifacts
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Logs
+*.log

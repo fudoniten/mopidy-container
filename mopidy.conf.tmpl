@@ -1,31 +1,53 @@
+# Mopidy Configuration Template
+# This file is processed by envsubst at container startup
+# Environment variables (${VAR_NAME}) are replaced with their values
+
+# HTTP Interface Configuration
+# Provides web UI (Muse) and HTTP API for clients
 [http]
 hostname = ${HTTP_HOST}
 port = ${HTTP_PORT}
 
+# MPD (Music Player Daemon) Protocol Support
+# Compatible with MPD clients like ncmpcpp, mpc, etc.
 [mpd]
 enabled = ${MPD_ENABLED}
 hostname = ${MPD_HOST}
 port = ${MPD_PORT}
 
+# Muse Web Interface
+# Modern web-based music player UI
 [muse]
 enabled = true
 
+# SomaFM Internet Radio
+# Provides access to SomaFM radio stations
 [somafm]
 enabled = ${SOMAFM_ENABLED}
 
+# Spotify Integration
+# Requires Spotify Premium account and API credentials
+# Get credentials from: https://developer.spotify.com/dashboard
 [spotify]
 enabled = ${SPOTIFY_ENABLED}
 client_id = ${SPOTIFY_CLIENT_ID}
 client_secret = ${SPOTIFY_CLIENT_SECRET}
 bitrate = ${SPOTIFY_BITRATE}
 
+# YouTube Music Integration
+# Requires authentication JSON file
 [ytmusic]
 enabled = ${YTMUSIC_ENABLED}
 auth_json = /var/lib/mopidy/ytmusic/auth.json
 
+# Podcast Support
+# Requires OPML file with podcast feeds
 [podcast]
 enabled = ${PODCASTS_ENABLED}
 browse_root = /etc/mopidy/podcast/Podcasts.opml
 
+# Audio Output Configuration
+# GStreamer pipeline: convert → resample → encode to MP3 → stream to Icecast
+# Pipeline: audioconvert ! audioresample ! lamemp3enc ! shout2send
 [audio]
 output = audioconvert ! audioresample ! lamemp3enc ! shout2send async=false mount=${ICECAST_MOUNT} port=${MOPIDY_ICECAST_PORT} ip=${MOPIDY_ICECAST_HOST} username=${ICECAST_USER} password=${ICECAST_SOURCE_PASSWORD}

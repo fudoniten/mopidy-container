@@ -1,0 +1,209 @@
+---
+# Namespace for Mopidy resources
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mopidy
+  labels:
+    name: mopidy
+
+---
+# Deployment for Mopidy music server
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mopidy
+  namespace: mopidy
+  labels:
+    app: mopidy
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: mopidy
+  template:
+    metadata:
+      labels:
+        app: mopidy
+    spec:
+      # Run as non-root user (UID 1000)
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+
+      containers:
+      - name: mopidy
+        image: registry.kube.sea.fudo.link/mopidy-server:latest
+        imagePullPolicy: Always
+
+        ports:
+        - name: http
+          containerPort: 6680
+          protocol: TCP
+        - name: mpd
+          containerPort: 6600
+          protocol: TCP
+
+        env:
+        # HTTP Interface
+        - name: HTTP_HOST
+          value: "0.0.0.0"
+        - name: HTTP_PORT
+          value: "6680"
+
+        # MPD Interface
+        - name: MPD_ENABLED
+          value: "true"
+        - name: MPD_HOST
+          value: "0.0.0.0"
+        - name: MPD_PORT
+          value: "6600"
+
+        # Spotify Configuration (from Secret)
+        - name: SPOTIFY_ENABLED
+          value: "true"
+        - name: SPOTIFY_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: mopidy-secrets
+              key: spotify-client-id
+        - name: SPOTIFY_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: mopidy-secrets
+              key: spotify-client-secret
+        - name: SPOTIFY_BITRATE
+          value: "320"
+
+        # Other Music Sources
+        - name: SOMAFM_ENABLED
+          value: "true"
+        - name: YTMUSIC_ENABLED
+          value: "false"
+        - name: PODCASTS_ENABLED
+          value: "false"
+
+        # Icecast Streaming Configuration
+        - name: MOPIDY_ICECAST_HOST
+          value: "icecast.mopidy.svc.cluster.local"
+        - name: MOPIDY_ICECAST_PORT
+          value: "8000"
+        - name: ICECAST_MOUNT
+          value: "/mopidy"
+        - name: ICECAST_USER
+          value: "source"
+        - name: ICECAST_SOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mopidy-secrets
+              key: icecast-password
+
+        # Liveness probe: Restart container if Mopidy crashes
+        livenessProbe:
+          httpGet:
+            path: /mopidy/api
+            port: 6680
+            scheme: HTTP
+          initialDelaySeconds: 40
+          periodSeconds: 30
+          timeoutSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
+
+        # Readiness probe: Remove from service if not ready
+        readinessProbe:
+          httpGet:
+            path: /mopidy/api
+            port: 6680
+            scheme: HTTP
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+
+        # Startup probe: Allow time for initial startup
+        startupProbe:
+          httpGet:
+            path: /mopidy/api
+            port: 6680
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 12  # 60 seconds total
+
+        # Resource limits and requests
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+        volumeMounts:
+        # Local music library (read-only)
+        - name: music
+          mountPath: /var/lib/mopidy/music
+          readOnly: true
+
+        # Cache directory (ephemeral)
+        - name: cache
+          mountPath: /var/lib/mopidy/.cache
+
+        # Data directory (ephemeral)
+        - name: data
+          mountPath: /var/lib/mopidy/.local/share
+
+        # Optional: YouTube Music authentication
+        # - name: ytmusic-auth
+        #   mountPath: /var/lib/mopidy/ytmusic
+        #   readOnly: true
+
+        # Optional: Podcast OPML file
+        # - name: podcast-feeds
+        #   mountPath: /etc/mopidy/podcast
+        #   readOnly: true
+
+      volumes:
+      # Music library from PersistentVolumeClaim
+      - name: music
+        persistentVolumeClaim:
+          claimName: music-library
+
+      # Ephemeral cache (cleared on pod restart)
+      - name: cache
+        emptyDir:
+          sizeLimit: 1Gi
+
+      # Ephemeral data (cleared on pod restart)
+      - name: data
+        emptyDir:
+          sizeLimit: 500Mi
+
+      # Optional: YouTube Music authentication from Secret
+      # - name: ytmusic-auth
+      #   secret:
+      #     secretName: ytmusic-auth
+      #     items:
+      #     - key: auth.json
+      #       path: auth.json
+
+      # Optional: Podcast feeds from ConfigMap
+      # - name: podcast-feeds
+      #   configMap:
+      #     name: podcast-feeds
+      #     items:
+      #     - key: Podcasts.opml
+      #       path: Podcasts.opml
+
+      # Restart policy
+      restartPolicy: Always

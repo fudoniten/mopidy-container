@@ -1,0 +1,106 @@
+version: '3.8'
+
+services:
+  mopidy:
+    image: registry.kube.sea.fudo.link/mopidy-server:latest
+    container_name: mopidy
+    restart: unless-stopped
+
+    # Run as UID 1000 (matches container user)
+    user: "1000:1000"
+
+    ports:
+      # HTTP interface (web UI and API)
+      - "6680:6680"
+      # MPD protocol
+      - "6600:6600"
+
+    environment:
+      # HTTP Interface
+      HTTP_HOST: "0.0.0.0"
+      HTTP_PORT: "6680"
+
+      # MPD Interface
+      MPD_ENABLED: "true"
+      MPD_HOST: "0.0.0.0"
+      MPD_PORT: "6600"
+
+      # Spotify Configuration
+      SPOTIFY_ENABLED: "true"
+      SPOTIFY_CLIENT_ID: "${SPOTIFY_CLIENT_ID}"
+      SPOTIFY_CLIENT_SECRET: "${SPOTIFY_CLIENT_SECRET}"
+      SPOTIFY_BITRATE: "320"
+
+      # Other Music Sources
+      SOMAFM_ENABLED: "true"
+      YTMUSIC_ENABLED: "false"
+      PODCASTS_ENABLED: "false"
+
+      # Icecast Streaming
+      MOPIDY_ICECAST_HOST: "icecast"  # Use service name for Docker network
+      MOPIDY_ICECAST_PORT: "8000"
+      ICECAST_MOUNT: "/mopidy"
+      ICECAST_USER: "source"
+      ICECAST_SOURCE_PASSWORD: "${ICECAST_SOURCE_PASSWORD}"
+
+    volumes:
+      # Local music library (read-only)
+      - ./music:/var/lib/mopidy/music:ro
+
+      # Persistent cache and data
+      - mopidy-cache:/var/lib/mopidy/.cache
+      - mopidy-data:/var/lib/mopidy/.local/share
+
+      # Optional: YouTube Music authentication
+      # - ./ytmusic-auth.json:/var/lib/mopidy/ytmusic/auth.json:ro
+
+      # Optional: Podcast OPML file
+      # - ./podcasts.opml:/etc/mopidy/podcast/Podcasts.opml:ro
+
+    networks:
+      - mopidy-net
+
+    depends_on:
+      - icecast
+
+    # Health check: verify Mopidy HTTP API is responding
+    # This overrides the HEALTHCHECK in the Dockerfile if needed
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6680/mopidy/api"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional Icecast server for streaming
+  icecast:
+    image: docker.io/moul/icecast:latest
+    container_name: icecast
+    restart: unless-stopped
+
+    ports:
+      - "8000:8000"
+
+    environment:
+      ICECAST_SOURCE_PASSWORD: "${ICECAST_SOURCE_PASSWORD}"
+      ICECAST_ADMIN_PASSWORD: "${ICECAST_ADMIN_PASSWORD:-changeme}"
+      ICECAST_PASSWORD: "${ICECAST_PASSWORD:-changeme}"
+      ICECAST_RELAY_PASSWORD: "${ICECAST_RELAY_PASSWORD:-changeme}"
+
+    volumes:
+      - icecast-data:/var/log/icecast2
+
+    networks:
+      - mopidy-net
+
+volumes:
+  mopidy-cache:
+    driver: local
+  mopidy-data:
+    driver: local
+  icecast-data:
+    driver: local
+
+networks:
+  mopidy-net:
+    driver: bridge

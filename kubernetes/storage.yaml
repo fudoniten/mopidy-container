@@ -1,0 +1,60 @@
+---
+# PersistentVolumeClaim for music library
+# Adjust storage class and size for your cluster
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: music-library
+  namespace: mopidy
+  labels:
+    app: mopidy
+spec:
+  accessModes:
+  - ReadOnlyMany  # Multiple pods can read (for scaling)
+  # - ReadWriteOnce  # Use this if only one pod needs access
+  resources:
+    requests:
+      storage: 100Gi  # Adjust based on your music library size
+  # storageClassName: nfs  # Specify your storage class
+  # Example storage classes:
+  # - nfs: Network file system
+  # - local-path: Local storage (e.g., k3s default)
+  # - cephfs: Ceph filesystem
+  # - efs: AWS EFS
+
+---
+# Optional: PersistentVolumeClaim for cache (if you want persistent cache)
+# apiVersion: v1
+# kind: PersistentVolumeClaim
+# metadata:
+#   name: mopidy-cache
+#   namespace: mopidy
+# spec:
+#   accessModes:
+#   - ReadWriteOnce
+#   resources:
+#     requests:
+#       storage: 5Gi
+#   storageClassName: local-path
+
+---
+# Optional: ConfigMap for podcast OPML feeds
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: podcast-feeds
+  namespace: mopidy
+data:
+  Podcasts.opml: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <opml version="2.0">
+      <head>
+        <title>Mopidy Podcasts</title>
+      </head>
+      <body>
+        <outline text="Technology">
+          <outline type="rss" text="Example Podcast" xmlUrl="https://example.com/feed.xml"/>
+          <!-- Add your podcast feeds here -->
+        </outline>
+      </body>
+    </opml>

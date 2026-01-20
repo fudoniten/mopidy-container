@@ -161,7 +161,9 @@ Audio is converted, resampled, encoded to MP3 (320kbps by default), and streamed
 
 ### Health Checks
 
-The container includes a built-in health check that monitors the Mopidy HTTP API:
+#### Docker
+
+The container includes a built-in HEALTHCHECK that monitors the Mopidy HTTP API:
 
 - **Endpoint**: `http://localhost:6680/mopidy/api`
 - **Check Interval**: Every 30 seconds
@@ -169,16 +171,56 @@ The container includes a built-in health check that monitors the Mopidy HTTP API
 - **Retries**: 3 consecutive failures before marking unhealthy
 - **Start Period**: 40 seconds (allows Mopidy to fully initialize)
 
-This health check enables:
-- Automatic container restart on failure (with Docker/Kubernetes)
-- Load balancer integration for multi-instance deployments
-- Monitoring and alerting based on container health status
-
 Check container health status:
 ```bash
 docker ps  # Shows health status in STATUS column
 docker inspect mopidy | jq '.[0].State.Health'
 ```
+
+#### Kubernetes
+
+Kubernetes uses its own probe mechanisms instead of Docker's HEALTHCHECK. Configure liveness and readiness probes using HTTP GET requests to the Mopidy API:
+
+**Liveness Probe**: Detects if Mopidy has crashed and needs restart
+```yaml
+livenessProbe:
+  httpGet:
+    path: /mopidy/api
+    port: 6680
+  initialDelaySeconds: 40
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 3
+```
+
+**Readiness Probe**: Determines if the pod is ready to receive traffic
+```yaml
+readinessProbe:
+  httpGet:
+    path: /mopidy/api
+    port: 6680
+  initialDelaySeconds: 20
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+```
+
+**Startup Probe** (optional): For slow-starting instances
+```yaml
+startupProbe:
+  httpGet:
+    path: /mopidy/api
+    port: 6680
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  failureThreshold: 12  # 60 seconds total
+```
+
+These probes enable:
+- Automatic pod restart on failure (liveness)
+- Proper load balancing and traffic routing (readiness)
+- Graceful handling of slow startups (startup)
+- Service mesh integration (Istio, Linkerd, etc.)
 
 ## Development
 
@@ -209,14 +251,18 @@ Update `docker-entrypoint.sh` to add new environment variables with defaults.
 
 ### Kubernetes
 
-Example deployment:
+See [kubernetes/deployment.yaml](kubernetes/deployment.yaml) for a complete example with probes, secrets, and services.
+
+Quick example:
 
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mopidy
+  namespace: mopidy
 spec:
+  replicas: 1
   selector:
     matchLabels:
       app: mopidy
@@ -231,8 +277,10 @@ spec:
         ports:
         - containerPort: 6680
           name: http
+          protocol: TCP
         - containerPort: 6600
           name: mpd
+          protocol: TCP
         env:
         - name: SPOTIFY_ENABLED
           value: "true"
@@ -251,17 +299,60 @@ spec:
             secretKeyRef:
               name: mopidy-secrets
               key: icecast-password
+        - name: MOPIDY_ICECAST_HOST
+          value: "icecast.mopidy.svc.cluster.local"
+
+        # Health probes for Kubernetes
+        livenessProbe:
+          httpGet:
+            path: /mopidy/api
+            port: 6680
+          initialDelaySeconds: 40
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /mopidy/api
+            port: 6680
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        startupProbe:
+          httpGet:
+            path: /mopidy/api
+            port: 6680
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          failureThreshold: 12
+
         volumeMounts:
         - name: music
           mountPath: /var/lib/mopidy/music
           readOnly: true
         - name: cache
           mountPath: /var/lib/mopidy/.cache
+        - name: data
+          mountPath: /var/lib/mopidy/.local/share
+
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
       volumes:
       - name: music
         persistentVolumeClaim:
           claimName: music-library
       - name: cache
+        emptyDir: {}
+      - name: data
         emptyDir: {}
 ```
 

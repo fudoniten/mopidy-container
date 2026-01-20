@@ -11,9 +11,10 @@ README.md
 flake.nix
 flake.lock
 
-# Docker files (not needed in build context except Dockerfile itself)
+# Docker and Kubernetes files (not needed in build context)
 docker-compose.yml
 .dockerignore
+kubernetes/
 
 # Environment files
 .env

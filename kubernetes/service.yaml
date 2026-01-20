@@ -1,0 +1,68 @@
+---
+# Service for Mopidy HTTP interface (web UI and API)
+apiVersion: v1
+kind: Service
+metadata:
+  name: mopidy-http
+  namespace: mopidy
+  labels:
+    app: mopidy
+spec:
+  type: ClusterIP
+  selector:
+    app: mopidy
+  ports:
+  - name: http
+    port: 6680
+    targetPort: 6680
+    protocol: TCP
+
+---
+# Service for Mopidy MPD interface
+apiVersion: v1
+kind: Service
+metadata:
+  name: mopidy-mpd
+  namespace: mopidy
+  labels:
+    app: mopidy
+spec:
+  type: ClusterIP
+  selector:
+    app: mopidy
+  ports:
+  - name: mpd
+    port: 6600
+    targetPort: 6600
+    protocol: TCP
+
+---
+# Optional: Ingress for external HTTP access
+# Uncomment and configure for your ingress controller
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: mopidy
+#   namespace: mopidy
+#   annotations:
+#     # Example annotations for various ingress controllers:
+#     # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+#     # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+#     # traefik.ingress.kubernetes.io/router.tls: "true"
+# spec:
+#   ingressClassName: nginx  # or traefik, etc.
+#   rules:
+#   - host: mopidy.example.com
+#     http:
+#       paths:
+#       - path: /
+#         pathType: Prefix
+#         backend:
+#           service:
+#             name: mopidy-http
+#             port:
+#               number: 6680
+#   tls:
+#   - hosts:
+#     - mopidy.example.com
+#     secretName: mopidy-tls

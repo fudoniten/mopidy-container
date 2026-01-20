@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: mopidy
+
+resources:
+- deployment.yaml
+- service.yaml
+- storage.yaml
+# Uncomment after creating actual secrets:
+# - secrets.yaml
+
+# Optional: Add common labels
+commonLabels:
+  app.kubernetes.io/name: mopidy
+  app.kubernetes.io/component: music-server
+
+# Optional: Add annotations
+# commonAnnotations:
+#   prometheus.io/scrape: "true"
+#   prometheus.io/port: "6680"

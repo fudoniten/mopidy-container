@@ -63,13 +63,14 @@ services:
     depends_on:
       - icecast
 
-    # Health check (requires adding HEALTHCHECK to Dockerfile)
-    # healthcheck:
-    #   test: ["CMD", "curl", "-f", "http://localhost:6680/mopidy/api"]
-    #   interval: 30s
-    #   timeout: 10s
-    #   retries: 3
-    #   start_period: 40s
+    # Health check: verify Mopidy HTTP API is responding
+    # This overrides the HEALTHCHECK in the Dockerfile if needed
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6680/mopidy/api"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # Optional Icecast server for streaming
   icecast:

@@ -59,4 +59,9 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 # - 6600: MPD protocol
 EXPOSE 6680 6600
 
+# Health check: verify Mopidy HTTP API is responding
+# Check every 30s, timeout after 10s, allow 3 retries, wait 40s for startup
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s \
+  CMD curl -f http://localhost:6680/mopidy/api || exit 1
+
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

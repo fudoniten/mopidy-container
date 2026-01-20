@@ -9,6 +9,7 @@ A production-ready containerized [Mopidy](https://mopidy.com/) music server with
 - **Multiple Interfaces**: HTTP API (port 6680) and MPD protocol (port 6600)
 - **Web Interface**: Built-in Muse web client
 - **Flexible Configuration**: Environment variable-based configuration with sensible defaults
+- **Health Monitoring**: Built-in Docker health checks for container orchestration
 - **Security**: Runs as non-root user (UID 1000)
 - **Modern Stack**: Ubuntu 25.04 base with latest Mopidy plugins
 
@@ -157,6 +158,27 @@ Mopidy → audioconvert → audioresample → lamemp3enc → shout2send → Icec
 ```
 
 Audio is converted, resampled, encoded to MP3 (320kbps by default), and streamed to the configured Icecast server.
+
+### Health Checks
+
+The container includes a built-in health check that monitors the Mopidy HTTP API:
+
+- **Endpoint**: `http://localhost:6680/mopidy/api`
+- **Check Interval**: Every 30 seconds
+- **Timeout**: 10 seconds
+- **Retries**: 3 consecutive failures before marking unhealthy
+- **Start Period**: 40 seconds (allows Mopidy to fully initialize)
+
+This health check enables:
+- Automatic container restart on failure (with Docker/Kubernetes)
+- Load balancer integration for multi-instance deployments
+- Monitoring and alerting based on container health status
+
+Check container health status:
+```bash
+docker ps  # Shows health status in STATUS column
+docker inspect mopidy | jq '.[0].State.Health'
+```
 
 ## Development
 
